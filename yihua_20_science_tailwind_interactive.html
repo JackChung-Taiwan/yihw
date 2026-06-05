@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>翊華國中教育｜生物理化互動教材</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .unit{display:none}
+    .unit.active{display:block}
+    .tab.active{background:#f59e0b;color:white}
+    .cell{width:160px;height:115px;background:#86efac;border:6px solid #22c55e;border-radius:50%;position:relative;transition:.4s}
+    .cell::after{content:"細胞核";position:absolute;left:46px;top:35px;background:#ec4899;color:#fff;border-radius:999px;padding:12px}
+    .glow{box-shadow:0 0 45px #22c55e;transform:scale(1.15)}
+    .beaker{width:130px;height:170px;border:7px solid #64748b;border-top:0;border-radius:0 0 30px 30px;position:relative;overflow:hidden}
+    .liquid{position:absolute;bottom:0;width:100%;height:48%;background:#93c5fd;transition:.4s}
+    .ball{width:72px;height:72px;border-radius:50%;background:#fb923c;transition:1s;position:absolute;top:35px}
+    .water{width:260px;height:165px;background:#bfdbfe;border-radius:0 0 36px 36px;position:relative}
+    .track{position:absolute;left:30px;right:30px;bottom:90px;height:12px;background:#94a3b8;border-radius:999px}
+    .car{width:86px;height:50px;background:#60a5fa;border-radius:16px;position:absolute;left:40px;bottom:102px;transition:1s}
+    .ray{height:7px;background:#f59e0b;position:absolute;left:32px;right:50%;top:50%;transform-origin:right;transition:.4s;border-radius:999px}
+    .dragging{opacity:.55;transform:scale(.95)}
+  </style>
+</head>
+
+<body class="min-h-screen bg-gradient-to-br from-emerald-50 via-sky-50 to-amber-50 text-slate-900">
+  <header class="sticky top-0 z-50 bg-white/90 backdrop-blur border-b-4 border-emerald-500 px-5 py-4 shadow-sm">
+    <div class="max-w-7xl mx-auto">
+      <h1 class="text-3xl md:text-5xl font-black text-emerald-700 tracking-tight">
+        翊華國中教育｜生物理化互動教材
+      </h1>
+      <p class="mt-2 text-lg md:text-xl text-slate-600">
+        20 個互動實驗｜電子白板觸控版｜Tailwind CSS 版
+      </p>
+    </div>
+  </header>
+
+  <nav id="tabs" class="sticky top-[92px] md:top-[116px] z-40 bg-white/90 backdrop-blur border-b border-slate-200 px-4 py-3 overflow-x-auto flex gap-2"></nav>
+
+  <main id="content" class="max-w-7xl mx-auto p-4 md:p-6"></main>
+
+  <footer class="mt-10 py-8 text-center text-3xl md:text-4xl font-black text-white bg-gradient-to-r from-emerald-600 to-amber-500">
+    翊華國中教育 互動教材
+  </footer>
+
+<script>
+const units = [
+["顯微鏡操作","調整倍率與焦距，觀察細胞由模糊到清楚。","bio1","生物"],
+["細胞構造","點選細胞構造，認識細胞膜、細胞質、細胞核。","bio2","生物"],
+["細胞所需物質","將水、氧氣、葡萄糖拖入細胞，讓細胞獲得能量。","bio3","生物"],
+["光合作用","提供陽光、水、二氧化碳，讓植物產生氧氣與葡萄糖。","bio4","生物"],
+["呼吸作用","比較氧氣與葡萄糖進入細胞後產生能量。","bio5","生物"],
+["消化系統","點擊食物，觀察食物通過消化道。","bio6","生物"],
+["血液循環","控制心臟跳動，觀察血液循環路徑。","bio7","生物"],
+["酸鹼指示劑","選擇不同液體，觀察石蕊試紙與 pH 變化。","chem1","理化"],
+["化學反應","混合反應物，觀察氣泡、沉澱與顏色變化。","chem2","理化"],
+["質量守恆","反應前後秤重，比較總質量是否相同。","chem3","理化"],
+["密度","選擇材料放入水中，觀察漂浮或下沉。","phys1","理化"],
+["浮力","調整物體體積與質量，觀察浮力大小。","phys2","理化"],
+["牛頓運動定律","調整推力與質量，觀察加速度變化。","phys3","理化"],
+["摩擦力","切換不同表面，觀察物體滑行距離。","phys4","理化"],
+["槓桿原理","調整支點與重物位置，讓槓桿平衡。","phys5","理化"],
+["功與能","改變高度，觀察位能轉換成動能。","phys6","理化"],
+["熱傳導","加熱金屬棒，觀察熱量由高溫傳到低溫。","phys7","理化"],
+["聲音傳播","比較空氣、水、真空中聲音傳播。","phys8","理化"],
+["光的反射折射","調整入射角，觀察反射與折射方向。","phys9","理化"],
+["電路設計","組裝電池、導線、開關與燈泡，完成電路。","phys10","理化"]
+];
+
+const tabs = document.getElementById("tabs");
+const content = document.getElementById("content");
+
+units.forEach((u,i)=>{
+  const tab=document.createElement("button");
+  tab.className="tab shrink-0 rounded-full px-4 py-3 text-base md:text-lg font-bold bg-slate-200 text-slate-700 active:scale-95 transition";
+  tab.textContent=(i+1)+" "+u[0];
+  tab.onclick=()=>show(i);
+  tabs.appendChild(tab);
+
+  const sec=document.createElement("section");
+  sec.className="unit";
+  sec.innerHTML=unitHTML(i,u);
+  content.appendChild(sec);
+});
+show(0);
+
+function show(i){
+  document.querySelectorAll(".tab").forEach((b,n)=>b.classList.toggle("active",n===i));
+  document.querySelectorAll(".unit").forEach((s,n)=>s.classList.toggle("active",n===i));
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+
+function unitHTML(i,u){
+  const id=u[2];
+  return `
+  <div class="bg-white/95 rounded-[2rem] shadow-xl border border-slate-200 p-5 md:p-8">
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+      <div>
+        <span class="inline-flex items-center rounded-full bg-emerald-100 text-emerald-700 px-4 py-1 text-sm font-black">${u[3]}</span>
+        <h2 class="mt-3 text-3xl md:text-5xl font-black text-teal-700">${i+1}. ${u[0]}</h2>
+        <p class="mt-3 text-xl md:text-2xl text-slate-600">${u[1]}</p>
+      </div>
+      <div class="text-6xl">${icon(id)}</div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      <div id="stage-${id}" class="relative min-h-[380px] rounded-[2rem] border-4 border-dashed border-slate-300 bg-gradient-to-b from-white to-slate-50 flex items-center justify-center overflow-hidden p-5">
+        ${stage(id)}
+      </div>
+
+      <div class="rounded-[2rem] bg-slate-50 border border-slate-200 p-5">
+        <h3 class="text-2xl font-black text-slate-700 mb-3">觸控操作區</h3>
+        <div class="flex flex-wrap gap-3 mb-4">${controls(id)}</div>
+
+        <div id="result-${id}" class="min-h-[80px] rounded-2xl bg-cyan-50 border-l-8 border-cyan-500 p-4 text-xl md:text-2xl leading-relaxed">
+          請觸控操作實驗。
+        </div>
+
+        <div class="mt-5 rounded-2xl bg-amber-50 border border-amber-200 p-4">
+          <h3 class="text-2xl font-black text-amber-700 mb-2">小測驗</h3>
+          <p class="text-lg mb-3">請選擇一個觀念檢查：</p>
+          <button onclick="answer('${id}',true)" class="px-5 py-4 rounded-2xl text-xl font-black text-white bg-emerald-600 active:scale-95 transition">正確觀念</button>
+          <button onclick="answer('${id}',false)" class="px-5 py-4 rounded-2xl text-xl font-black text-white bg-amber-500 active:scale-95 transition">常見錯誤</button>
+          <div id="ans-${id}" class="mt-3 text-xl text-slate-700"></div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function icon(id){
+  if(id.startsWith("bio")) return "🧬";
+  if(id.startsWith("chem")) return "🧪";
+  return "⚙️";
+}
+
+function btn(txt,fn,color="sky"){
+  const cls = color==="green" ? "bg-emerald-600" : color==="amber" ? "bg-amber-500" : "bg-sky-600";
+  return `<button onclick="${fn}" class="px-5 py-4 rounded-2xl text-xl font-black text-white ${cls} shadow active:scale-95 transition touch-none">${txt}</button>`;
+}
+
+function dragItem(txt){
+  return `<div draggable="true" ondragstart="drag(event)" ondragend="event.target.classList.remove('dragging')" data-name="${txt}" class="cursor-grab select-none touch-none px-5 py-4 rounded-2xl text-xl font-black text-white bg-sky-600 shadow active:scale-95 transition">${txt}</div>`;
+}
+
+function stage(id){
+  const map={
+    bio1:`<div class="text-center"><div class="text-[9rem]">🔬</div><div class="cell mx-auto" id="cell-bio1"></div></div>`,
+    bio2:`<div class="relative w-72 h-52 rounded-full bg-green-300 border-[7px] border-green-500 flex items-center justify-center text-white text-2xl font-black shadow-lg"><span class="absolute left-4 top-4 bg-emerald-700 rounded-full px-3 py-1">細胞膜</span><span class="absolute left-6 bottom-5 bg-lime-700 rounded-full px-3 py-1">細胞質</span><span class="bg-pink-500 rounded-full px-8 py-7">細胞核</span></div>`,
+    bio3:`<div class="cell" id="cell-bio3"></div><div class="absolute bottom-5 left-5 right-5 min-h-28 rounded-3xl border-4 border-dashed border-slate-400 bg-slate-100 flex items-center justify-center text-2xl font-black text-slate-500" ondrop="dropBio3(event)" ondragover="event.preventDefault()">把物質拖到這裡</div>`,
+    bio4:`<div class="text-center"><div id="plant" class="text-[9rem] transition duration-500 grayscale">🌱</div><div id="oxygen" class="mt-4"></div></div>`,
+    bio5:`<div class="text-center"><div class="cell mx-auto" id="cell-bio5"></div><div class="text-4xl font-black mt-6" id="energy">能量：0</div></div>`,
+    bio6:`<div id="digest" class="text-4xl md:text-5xl leading-relaxed font-black text-center">🍞 嘴巴 → 食道 → 胃 → 小腸 → 大腸</div>`,
+    bio7:`<div class="text-center"><div id="heart" class="text-[9rem] transition">❤️</div><div id="bloodPath" class="text-3xl font-black">肺 ↔ 心臟 ↔ 全身</div></div>`,
+    chem1:`<div class="text-center"><div class="beaker mx-auto"><div class="liquid" id="acidLiquid"></div></div><div id="phText" class="text-4xl font-black mt-5">pH ?</div></div>`,
+    chem2:`<div class="text-center"><div class="beaker mx-auto"><div class="liquid" id="reactLiquid"></div></div><div id="bubble" class="text-7xl mt-4"></div></div>`,
+    chem3:`<div class="text-center text-4xl font-black"><div class="text-[8rem]">⚖️</div><div id="mass">反應前：100g<br>反應後：?</div></div>`,
+    phys1:`<div class="water"><div class="ball left-24" id="densityBall"></div></div>`,
+    phys2:`<div class="water"><div class="ball left-24" id="floatBall"></div></div>`,
+    phys3:`<div class="track"></div><div class="car" id="newtonCar"></div>`,
+    phys4:`<div class="track"></div><div class="car" id="frictionCar"></div>`,
+    phys5:`<div class="relative w-80 h-48 flex items-center justify-center"><div id="lever" class="relative w-80 h-4 rounded-full bg-amber-800 transition duration-500"><span class="absolute left-[145px] top-3 text-4xl">▲</span><span class="absolute left-8 -top-12 text-5xl">⬛</span><span class="absolute right-8 -top-12 text-5xl">⬛</span></div></div>`,
+    phys6:`<div id="ballPE" class="text-8xl absolute top-10 transition duration-500">⚽</div><div id="energyText" class="absolute bottom-10 text-3xl font-black">位能高，動能低</div>`,
+    phys7:`<div class="text-center"><div class="w-80 h-10 rounded-full bg-gradient-to-r from-red-500 via-amber-400 to-sky-400"></div><div id="heatText" class="text-4xl font-black mt-8">高溫 → 低溫</div></div>`,
+    phys8:`<div class="text-center"><div class="text-[8rem] animate-pulse">〰️</div><div id="soundText" class="text-4xl font-black">選擇介質</div></div>`,
+    phys9:`<div class="ray" id="ray1"></div><div class="absolute left-1/2 top-14 h-72 w-2 bg-slate-500 rounded-full"></div><div class="ray bg-emerald-500" id="ray2" style="transform:rotate(30deg)"></div>`,
+    phys10:`<div class="grid grid-cols-3 gap-5 text-center"><div class="w-24 h-20 rounded-2xl border-4 border-slate-700 bg-white flex items-center justify-center text-5xl">🔋</div><div class="w-24 h-20 rounded-2xl border-4 border-slate-700 bg-white flex items-center justify-center text-5xl">🔌</div><div id="lamp" class="w-24 h-20 rounded-2xl border-4 border-slate-700 bg-white flex items-center justify-center text-5xl transition">💡</div><div class="w-24 h-20 rounded-2xl border-4 border-slate-700 bg-white flex items-center justify-center text-5xl">—</div><div id="switch" class="w-24 h-20 rounded-2xl border-4 border-slate-700 bg-white flex items-center justify-center text-3xl font-black">開</div><div class="w-24 h-20 rounded-2xl border-4 border-slate-700 bg-white flex items-center justify-center text-5xl">—</div></div>`
+  };
+  return map[id];
+}
+
+function controls(id){
+  const map={
+    bio1:btn("40X","microscope(40)")+btn("100X","microscope(100)")+btn("400X","microscope(400)")+btn("細調焦","focusCell()","green"),
+    bio2:btn("細胞膜","res('bio2','細胞膜：控制物質進出。')")+btn("細胞質","res('bio2','細胞質：進行許多生命活動。')")+btn("細胞核","res('bio2','細胞核：控制細胞活動，含遺傳物質。')"),
+    bio3:dragItem("水")+dragItem("氧氣")+dragItem("葡萄糖")+dragItem("二氧化碳"),
+    bio4:btn("加入陽光","photosyn('陽光')")+btn("加入水","photosyn('水')")+btn("加入二氧化碳","photosyn('二氧化碳')"),
+    bio5:btn("氧氣","respire('氧氣')")+btn("葡萄糖","respire('葡萄糖')"),
+    bio6:btn("開始消化動畫","digest()","green"),
+    bio7:btn("心臟跳動","heartbeat()","amber")+btn("查看功能","res('bio7','血液會運送氧氣與養分，也帶走二氧化碳與廢物。')"),
+    chem1:btn("鹽酸","acid('鹽酸',1,'#f87171')")+btn("水","acid('水',7,'#93c5fd')")+btn("肥皂水","acid('肥皂水',10,'#60a5fa')")+btn("氫氧化鈉","acid('氫氧化鈉',13,'#2563eb')"),
+    chem2:btn("小蘇打＋醋","reaction('氣泡')")+btn("硝酸銀＋食鹽水","reaction('沉澱')")+btn("碘液＋澱粉","reaction('變色')"),
+    chem3:btn("密閉反應","mass()","green")+btn("開放反應","massOpen()","amber"),
+    phys1:btn("木頭","density('木頭',0.6)")+btn("鐵塊","density('鐵塊',7.8)")+btn("保麗龍","density('保麗龍',0.1)"),
+    phys2:`<label class="w-full text-xl font-black">質量 <input id="massB" class="w-full accent-emerald-600 h-8" type="range" min="1" max="10" value="5" oninput="buoy()"></label><label class="w-full text-xl font-black">體積 <input id="vol" class="w-full accent-emerald-600 h-8" type="range" min="1" max="10" value="5" oninput="buoy()"></label>`,
+    phys3:`<label class="w-full text-xl font-black">推力 <input id="force" class="w-full accent-sky-600 h-8" type="range" min="1" max="10" value="5"></label><label class="w-full text-xl font-black">質量 <input id="massInput" class="w-full accent-sky-600 h-8" type="range" min="1" max="10" value="5"></label>${btn("開始","newton()","green")}`,
+    phys4:btn("冰面","friction('冰面',270)")+btn("木板","friction('木板',190)")+btn("砂紙","friction('砂紙',95)"),
+    phys5:btn("左邊較重","lever(-8)")+btn("平衡","lever(0)","green")+btn("右邊較重","lever(8)"),
+    phys6:btn("高處","energy(35)")+btn("低處","energy(180)"),
+    phys7:btn("開始加熱","heat()","amber"),
+    phys8:btn("空氣","sound('空氣','可以傳聲')")+btn("水","sound('水','傳聲更快')")+btn("真空","sound('真空','不能傳聲')"),
+    phys9:`<label class="w-full text-xl font-black">入射角 <input id="angle" class="w-full accent-amber-500 h-8" type="range" min="10" max="70" value="30" oninput="lightRay()"></label>`,
+    phys10:btn("閉合電路","circuit(true)","green")+btn("斷路","circuit(false)","amber")
+  };
+  return map[id];
+}
+
+function res(id,txt){document.getElementById("result-"+id).innerHTML=txt}
+function answer(id,ok){
+  document.getElementById("ans-"+id).innerHTML = ok
+    ? "✅ 正確：觀察現象後，要連結科學概念、變因與原因。"
+    : "❌ 常見錯誤：只看結果，沒有比較控制變因與操作變因。";
+}
+function microscope(x){
+  const c=document.getElementById("cell-bio1");
+  c.style.transform=`scale(${x/90})`;
+  res("bio1",`目前倍率：${x}X。倍率越高，視野越小，細節越明顯。`);
+}
+function focusCell(){document.getElementById("cell-bio1").classList.add("glow");res("bio1","細調焦完成：細胞影像變清楚。")}
+function drag(ev){ev.dataTransfer.setData("text",ev.target.dataset.name); ev.target.classList.add("dragging")}
+let bio3set=new Set();
+function dropBio3(ev){
+  ev.preventDefault();
+  const n=ev.dataTransfer.getData("text");
+  bio3set.add(n);
+  if(["水","氧氣","葡萄糖"].every(x=>bio3set.has(x))){
+    document.getElementById("cell-bio3").classList.add("glow");
+    res("bio3","細胞獲得水、氧氣與葡萄糖，可以進行呼吸作用產生能量。");
+  }else{
+    res("bio3","已加入："+[...bio3set].join("、"));
+  }
+}
+let photo=new Set();
+function photosyn(x){
+  photo.add(x);
+  if(["陽光","水","二氧化碳"].every(y=>photo.has(y))){
+    document.getElementById("plant").classList.remove("grayscale");
+    document.getElementById("plant").classList.add("scale-125");
+    document.getElementById("oxygen").innerHTML="<span class='inline-block bg-emerald-100 text-emerald-700 rounded-full px-4 py-2 m-1 text-2xl font-black'>氧氣</span><span class='inline-block bg-amber-100 text-amber-700 rounded-full px-4 py-2 m-1 text-2xl font-black'>葡萄糖</span>";
+    res("bio4","光合作用完成：植物利用陽光、水、二氧化碳製造葡萄糖並釋放氧氣。");
+  }else{
+    res("bio4","已加入："+[...photo].join("、"));
+  }
+}
+let resp=new Set();
+function respire(x){
+  resp.add(x);
+  if(resp.size>=2){
+    document.getElementById("energy").textContent="能量：100";
+    document.getElementById("cell-bio5").classList.add("glow");
+    res("bio5","呼吸作用：葡萄糖＋氧氣 → 能量＋二氧化碳＋水。");
+  }else res("bio5","還需要葡萄糖與氧氣一起參與。");
+}
+function digest(){
+  const steps=["🍞 嘴巴：咀嚼與唾液分解","➡️ 食道：運送食物","🧪 胃：胃酸與攪拌","✅ 小腸：吸收養分","🚽 大腸：吸收水分形成糞便"];
+  let i=0; const el=document.getElementById("digest");
+  const t=setInterval(()=>{el.innerHTML=steps[i];res("bio6",steps[i]);i++; if(i>=steps.length)clearInterval(t)},850);
+}
+function heartbeat(){
+  const h=document.getElementById("heart");
+  h.style.transform="scale(1.3)";
+  setTimeout(()=>h.style.transform="scale(1)",250);
+  res("bio7","心臟收縮與舒張，推動血液循環。");
+}
+function acid(name,ph,color){
+  document.getElementById("acidLiquid").style.background=color;
+  document.getElementById("phText").textContent="pH "+ph;
+  res("chem1",`${name} 的 pH 約為 ${ph}，${ph<7?"酸性":ph==7?"中性":"鹼性"}。`);
+}
+function reaction(type){
+  document.getElementById("bubble").textContent= type==="氣泡"?"🫧🫧":type==="沉澱"?"⬇️⬜":"💙";
+  res("chem2",`觀察到${type}，表示可能發生化學反應。`);
+}
+function mass(){document.getElementById("mass").innerHTML="反應前：100g<br>反應後：100g";res("chem3","密閉系統中，反應前後總質量不變。")}
+function massOpen(){document.getElementById("mass").innerHTML="反應前：100g<br>反應後：96g";res("chem3","開放系統中氣體逸散，量到的質量可能變少，但總質量仍守恆。")}
+function density(name,d){
+  const b=document.getElementById("densityBall");
+  b.style.top=d>1?"95px":"20px";
+  res("phys1",`${name} 密度 ${d} g/cm³，${d>1?"大於水，會下沉":"小於水，會漂浮"}。`);
+}
+function buoy(){
+  const v=+document.getElementById("vol").value;
+  const m=+document.getElementById("massB").value;
+  const b=document.getElementById("floatBall");
+  b.style.top=(130 + m*4 - v*10)+"px";
+  res("phys2",`質量 ${m}、體積 ${v}。體積越大，排開水量越多，浮力越大；質量越大，越容易下沉。`);
+}
+function newton(){
+  const f=+document.getElementById("force").value,m=+document.getElementById("massInput").value;
+  const a=f/m;
+  document.getElementById("newtonCar").style.left=(40+a*185)+"px";
+  res("phys3",`加速度 = 推力 ÷ 質量 = ${a.toFixed(2)}。推力越大、質量越小，加速度越大。`);
+}
+function friction(name,dist){
+  document.getElementById("frictionCar").style.left=dist+"px";
+  res("phys4",`${name} 的摩擦效果不同。摩擦力越大，物體滑行距離越短。`);
+}
+function lever(deg){
+  document.getElementById("lever").style.transform=`rotate(${deg}deg)`;
+  res("phys5",deg===0?"兩邊力矩相同，槓桿平衡。":"左右力矩不同，槓桿傾斜。");
+}
+function energy(top){
+  document.getElementById("ballPE").style.top=top+"px";
+  document.getElementById("energyText").textContent=top<80?"位能高，動能低":"位能轉換為動能";
+  res("phys6","高度越高，重力位能越大；下落時位能轉換成動能。");
+}
+function heat(){res("phys7","熱會由高溫處傳到低溫處，直到溫度趨近一致。")}
+function sound(m,t){
+  document.getElementById("soundText").textContent=m+"："+t;
+  res("phys8",`${m}中，聲音${t}。聲音需要介質傳播，真空中無法傳聲。`);
+}
+function lightRay(){
+  const a=+document.getElementById("angle").value;
+  document.getElementById("ray1").style.transform=`rotate(${-a}deg)`;
+  document.getElementById("ray2").style.transform=`rotate(${a}deg)`;
+  res("phys9",`入射角約 ${a}°，反射角也約 ${a}°。`);
+}
+function circuit(on){
+  const lamp=document.getElementById("lamp");
+  lamp.classList.toggle("bg-yellow-200",on);
+  lamp.classList.toggle("shadow-[0_0_40px_#facc15]",on);
+  document.getElementById("switch").textContent=on?"閉合":"斷開";
+  res("phys10",on?"形成完整迴路，燈泡亮起。":"電路沒有形成完整迴路，燈泡不亮。");
+}
+</script>
+</body>
+</html>
